@@ -1,7 +1,9 @@
 import { Stack } from '../Stack/stack';
 
+// Define explicit type for the operator function
+type ApplyOpFn = (b: number, a: number, op: string) => number;
+
 export function evaluateExpression(expression: string): number {
-  
   if (/[^0-9+\-*/()\s]/.test(expression)) {
     throw new Error("Invalid characters detected. Only digits and + - * / ( ) are allowed.");
   }
@@ -15,14 +17,14 @@ export function evaluateExpression(expression: string): number {
     return 0;
   };
 
-  const applyOp = (b: number, a: number, op: string): number => {
+  const applyOp: ApplyOpFn = (b: number, a: number, op: string): number => {
     switch (op) {
       case '+': return a + b;
       case '-': return a - b;
       case '*': return a * b;
-      case '/': return a/b;
-        // if (b === 0) throw new Error("Division by zero error.");
-        // return a / b;
+      case '/': 
+        if (b === 0) throw new Error("Division by zero error.");
+        return a / b;
       default: return 0;
     }
   };
@@ -54,21 +56,17 @@ export function evaluateExpression(expression: string): number {
     processTop(values, ops, applyOp);
   }
 
-  const finalResult = values.pop();
-  return finalResult;
+  return values.pop();
 }
 
-// Helper to catch Stack Underflow before the Stack class throws it
-function processTop(values: Stack<number>, ops: Stack<string>, applyOp: Function) {
+function processTop(values: Stack<number>, ops: Stack<string>, applyOp: ApplyOpFn) {
   const op = ops.pop()!;
-  
-  // check the stack manually here to provide the "Insufficient operands" message
-  // instead of letting the Stack class throw "Stack Underflow"
   try {
     const b = values.pop();
     const a = values.pop();
     values.push(applyOp(b, a, op));
   } catch (e) {
-    throw new Error(`Insufficient operands for operator: ${op}`);
+    // Uses 'e' and attaches as cause to satisfy linter
+    throw new Error(`Insufficient operands for operator: ${op}`, { cause: e });
   }
 }
