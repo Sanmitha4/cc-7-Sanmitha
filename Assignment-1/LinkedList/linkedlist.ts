@@ -142,3 +142,4 @@ export class LinkedList<T> implements LinkedListInterface<T> {
     return this.#length;
   }
 }
+
