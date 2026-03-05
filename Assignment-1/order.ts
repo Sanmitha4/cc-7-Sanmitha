@@ -68,3 +68,30 @@ function secondLargestForEach(arr) {
 // Test it
 console.log(secondLargestForEach([10, 5, 8, 12, 12, 1])); // Output: 10
 console.log(secondLargestForEach([4,5,66,22,3,56]));
+
+
+/**
+ * Imperative implementation of 'some'
+ * @param {Array} items - The array to iterate over
+ * @param {Function} predicate - Function that returns a boolean
+ * @returns {boolean}
+ */
+function some(items, predicate) {
+  for (let i = 0; i < items.length; i++) {
+    // If at least one item satisfies the predicate, return true immediately
+    if (predicate(items[i])) {
+      return true;
+    }
+  }
+  // If the loop finishes without finding a match, return false
+  return false;
+}
+
+// Test
+console.log(some([1, 2, 3], (num) => num > 2)); // true
+console.log(some([1, 2, 3], (num) => num > 5)); // false
+const nums = [1, 2, 10, 3, 4];
+some(nums, (n) => {
+  console.log("Checking:", n);
+  return n > 5;
+});
