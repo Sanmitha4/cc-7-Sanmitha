@@ -57,18 +57,19 @@ export function evaluateExpression(expression: string): number {
   const finalResult = values.pop();
   return finalResult;
 }
-
-// Helper to catch Stack Underflow before the Stack class throws it
-function processTop(values: Stack<number>, ops: Stack<string>, applyOp: Function) {
+function processTop(
+  values: Stack<number>, 
+  ops: Stack<string>, 
+  applyOp: (b: number, a: number, op: string) => number
+) {
   const op = ops.pop()!;
   
-  // check the stack manually here to provide the "Insufficient operands" message
-  // instead of letting the Stack class throw "Stack Underflow"
   try {
     const b = values.pop();
     const a = values.pop();
     values.push(applyOp(b, a, op));
-  } catch (e) {
-    throw new Error(`Insufficient operands for operator: ${op}`);
+  } catch (error) {
+    // Re-throwing with 'cause' preserves the original error stack
+    throw new Error(`Insufficient operands for operator: ${op}`, { cause: error });
   }
 }

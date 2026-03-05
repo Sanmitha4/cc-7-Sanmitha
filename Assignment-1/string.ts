@@ -1,13 +1,13 @@
 import assert from 'node:assert';
 
-
 function lengthOfString(str: string): number {
   let count = 0;
-  for (const char of str) {
+  for (let i = 0; i < str.length; i++) {
     count++;
   }
   return count;
 }
+
 assert.strictEqual(lengthOfString('one world'), 9, "Length of 'one world' should be 9");
 assert.strictEqual(lengthOfString(''), 0, "Empty string should have length 0");
 assert.strictEqual(lengthOfString('A+B'), 3, "Length of 'A+B' should be 3");
