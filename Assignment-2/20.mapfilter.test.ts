@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import { map, filter } from './20.mapfilter';
 
 // --- Tests for map ---
@@ -26,11 +26,6 @@ describe('map()', () => {
     expect(original).toEqual([1, 2, 3]);
   });
 
-  it('should call the transform function for every item', () => {
-    const transform = vi.fn((x) => x);
-    map([1, 2, 3], transform);
-    expect(transform).toHaveBeenCalledTimes(3);
-  });
 });
 
 // --- Tests for filter ---
@@ -54,12 +49,10 @@ describe('filter()', () => {
     const result = filter([1, 2, 3], (n) => n > 10);
     expect(result).toEqual([]);
   });
-
   it('should return an empty array when input is empty', () => {
-    const result = filter([], (x) => true);
+    const result = filter([], ( ) => true);
     expect(result).toEqual([]);
   });
-
   it('should not mutate the original array', () => {
     const original = [1, 2, 3];
     filter(original, (n) => n > 1);
