@@ -20,8 +20,12 @@
   },
   "homepage": "https://github.com/Sanmitha4/cc-7-Sanmitha#readme",
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
     "@types/node": "^25.3.0",
+    "@vitest/eslint-plugin": "^1.6.10",
+    "eslint": "^10.0.3",
     "ts-node": "^10.9.2",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.57.0"
   }
 }
