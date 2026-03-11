@@ -20,11 +20,10 @@ export const map = <T, U>(array: T[], transform: (item: T) => U): U[] => {
  * @param {(item: T) => boolean} predicate - The condition check.
  * @returns {T[]} A new array containing only items that pass the predicate.
  */
+
+
 export const filter = <T>(array: T[], predicate: (item: T) => boolean): T[] => {
   return array.reduce((acc: T[], item: T) => {
-    if (predicate(item)) {
-      acc.push(item);
-    }
-    return acc;
+    return predicate(item) ? [...acc, item] : acc;
   }, []);
 };

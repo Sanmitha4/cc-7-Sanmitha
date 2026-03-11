@@ -3,11 +3,11 @@
  * @interface Nutritions
  */
 export interface Nutritions {
-  protein?: number;
-  carbs?: number;
-  sugar?: number;
-  vitamins?: number;
-  [key: string]: number | undefined;
+  protein: number;
+  carbs: number;
+  sugar: number;
+  vitamins: number;
+  [key: string]: number;
 }
 
 /**
@@ -51,10 +51,15 @@ export const getDataWithTotals = (data: Item[]) =>
  * @param {Item[]} data - The collection of fruits and nuts.
  * @returns {number} The cumulative sum of all nutritional values from all items.
  */
-export const getGrandTotalValue = (data: Item[]) => 
+export const getGrandTotalValue = (data: Item[]): number => 
   data
-    .map(item => Object.values(item.nutritions).reduce((acc: number, val: any) => acc + val, 0))
+    .map(item => 
+      // Use Object.values with a specific type instead of 'any'
+      Object.values(item.nutritions).reduce((acc: number, val: number) => acc + val, 0)
+    )
     .reduce((total, itemSum) => total + itemSum, 0);
+
+
 
 /**
  * Filters the list for items that are effective against bone-related health issues.
@@ -101,7 +106,8 @@ export const getSugarSafeNutProtein = (data: Item[]) =>
  */
 export const getSpecificIntake = (data: Item[]) => 
   data.filter(item => {
-    if (item.type === 'fruit') return !item.nutritions.hasOwnProperty('sugar');
+    if (item.type === 'fruit') return !Object.hasOwn(item.nutritions, 'sugar');
     if (item.type === 'nut') return item.treats.includes('sugar');
     return false;
   }).reduce((total, item) => total + (item.nutritions.vitamins ?? 0), 0);
+  
