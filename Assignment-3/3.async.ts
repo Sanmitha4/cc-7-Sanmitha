@@ -98,7 +98,7 @@ async function runTests(myPath: string) {
     console.log(`--- Starting Async Analysis: ${myPath} ---`);
     
     try {
-        // Line by line execution (waits for each to finish)
+        // Line by line execution (waits for each to finish.)
         const type = await getFileType(myPath);
         console.log("Type:", type);
 
