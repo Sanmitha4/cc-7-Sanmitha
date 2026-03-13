@@ -10,7 +10,7 @@ let tempFile: string;
 const fileContent = "Hello, Vitest!";
 
 beforeAll(async () => {
-    // Create a unique temp directory for this test run
+    // Create a unique temp directory for this test run.
     tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'vitest-fs-test-'));
     tempFile = path.join(tempDir, 'test.txt');
     await fs.writeFile(tempFile, fileContent);
