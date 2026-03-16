@@ -9,5 +9,8 @@
 
  * Promisified version of setTimeout.
  */
-export const delay = (ms: number): Promise<undefined> => 
-    new Promise(resolve => setTimeout(() => resolve(undefined), ms));
+
+
+/** Promisified version of setTimeout. */
+export const delay = (ms: number): Promise<void> => 
+    new Promise(resolve => setTimeout(resolve, ms));

@@ -21,13 +21,16 @@ export interface User {
  * @returns {Promise<User[]>} A promise resolving to the user list.
  * @throws {Error} If the fetch request fails or returns a non-200 status.
  */
+
 export async function getUsers(delayTime: number = 2000): Promise<User[]> {
-  const [response] = await Promise.all([
-    fetch("https://jsonplaceholder.typicode.com/users"),
-    delay(delayTime)
-  ]);
-  if (!response.ok) {
-    throw new Error("Failed to fetch users");
-  }
+  // Start both immediately
+  const fetchTask = fetch("https://jsonplaceholder.typicode.com/users");
+  const delayTask = delay(delayTime);
+
+  // Wait for both to finish (Concurrent)
+  const [response] = await Promise.all([fetchTask, delayTask]);
+
+  if (!response.ok) throw new Error("Failed to fetch users");
+  
   return response.json();
 }
