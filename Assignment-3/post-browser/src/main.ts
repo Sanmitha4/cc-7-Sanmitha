@@ -1,5 +1,5 @@
 import { CacheService } from './services/CacheService';
-import { delay } from '../../5.delay';
+import { delay } from './delay';
 import './style.css';
 
 // 1. Interfaces
