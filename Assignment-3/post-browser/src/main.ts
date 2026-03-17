@@ -27,6 +27,9 @@ const app = document.querySelector<HTMLDivElement>('#app')!;
 /**
  * Core Data Fetching Logic
  */
+/**
+ * Core Data Fetching Logic
+ */
 async function fetchData() {
     const postKey = `post-${currentId}`;
     const commentKey = `comments-${currentId}`;
@@ -49,7 +52,8 @@ async function fetchData() {
 
             isLoading = false;
             render(post, comments);
-        } catch (error) {
+        } catch {
+            // REMOVED '(error)' to satisfy ESLint
             isLoading = false;
             app.innerHTML = `<div class="error">Failed to load data. Please try again.</div>`;
         }
@@ -60,6 +64,7 @@ async function fetchData() {
         render(post, comments || []);
     }
 }
+
 
 /**
  * API Fetchers
