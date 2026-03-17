@@ -26,7 +26,6 @@ const app = document.querySelector<HTMLDivElement>('#app')!;
 
 /**
  * Core Data Fetching Logic
- * Ensures 1s delay on network fetch, instant load on cache.
  */
 async function fetchData() {
     const postKey = `post-${currentId}`;
@@ -35,25 +34,26 @@ async function fetchData() {
     const isPostCached = postCache.has(postKey);
     const isCommentsCached = commentCache.has(commentKey);
 
-    // Only fetch if data is missing from the CacheService
     const needsToFetch = !isPostCached || (showComments && !isCommentsCached);
 
     if (needsToFetch) {
         isLoading = true;
-        render(); // Show the spinner immediately
+        render(); 
 
-        // Create promises for the data and the 1s delay
-        const postPromise = getPost();
-        const commentsPromise = showComments ? getComments() : Promise.resolve([]);
-        const delayPromise = new Promise(resolve => setTimeout(resolve, 1000));
+        try {
+            const postPromise = getPost();
+            const commentsPromise = showComments ? getComments() : Promise.resolve([]);
+            const delayPromise = new Promise(resolve => setTimeout(resolve, 1000));
 
-        // Wait for data AND the 1s timer to complete in parallel
-        const [post, comments] = await Promise.all([postPromise, commentsPromise, delayPromise]);
+            const [post, comments] = await Promise.all([postPromise, commentsPromise, delayPromise]);
 
-        isLoading = false;
-        render(post, comments);
+            isLoading = false;
+            render(post, comments);
+        } catch (error) {
+            isLoading = false;
+            app.innerHTML = `<div class="error">Failed to load data. Please try again.</div>`;
+        }
     } else {
-        // DATA EXISTS IN CACHE: Render immediately with 0 delay
         isLoading = false;
         const post = postCache.get(postKey);
         const comments = showComments ? commentCache.get(commentKey) : [];
@@ -62,7 +62,7 @@ async function fetchData() {
 }
 
 /**
- * API Fetchers with Cache Integration
+ * API Fetchers
  */
 async function getPost(): Promise<Post> {
     const key = `post-${currentId}`;
@@ -70,6 +70,7 @@ async function getPost(): Promise<Post> {
     
     if (!post) {
         const res = await fetch(`https://jsonplaceholder.typicode.com/posts/${currentId}`);
+        if (!res.ok) throw new Error();
         post = await res.json();
         postCache.set(key, post!);
     }
@@ -82,6 +83,7 @@ async function getComments(): Promise<Comment[]> {
     
     if (!comments) {
         const res = await fetch(`https://jsonplaceholder.typicode.com/posts/${currentId}/comments`);
+        if (!res.ok) throw new Error();
         comments = await res.json();
         commentCache.set(key, comments!);
     }
@@ -98,19 +100,18 @@ function render(post?: Post, comments: Comment[] = []) {
     </header>
 
     <main>
-      <div class="card"> <div class="post-content-wrapper">
+      <div class="card">
+        <div class="post-content-wrapper">
           <span class="post-id">Post #${currentId} of ${MAX_POSTS}</span>
           
           <div class="post-text-area">
             ${isLoading ? `
               <div class="overlay-loader">
-                <div class="loader-container">
-                  <span class="loader"></span>
-                </div>
+                <div class="loader-container"><span class="loader"></span></div>
               </div>
             ` : `
-              <h2 class="post-title">${post?.title}</h2>
-              <p class="post-body">${post?.body}</p>
+              <h2 class="post-title">${post?.title || ''}</h2>
+              <p class="post-body">${post?.body || ''}</p>
             `}
           </div>
 
@@ -137,58 +138,41 @@ function render(post?: Post, comments: Comment[] = []) {
           ` : ''}
 
           <div class="nav-controls">
-            <button class="btn btn-secondary" id="prev-btn" ${currentId <= 1 || isLoading ? 'disabled' : ''}>
-              ← Previous
-            </button>
-            <button class="btn btn-secondary" id="next-btn" ${currentId >= MAX_POSTS || isLoading ? 'disabled' : ''}>
-              Next →
-            </button>
+            <button class="btn btn-secondary" id="prev-btn" ${currentId <= 1 || isLoading ? 'disabled' : ''}>← Previous</button>
+            <button class="btn btn-secondary" id="next-btn" ${currentId >= MAX_POSTS || isLoading ? 'disabled' : ''}>Next →</button>
           </div>
         </div>
       </div>
     </main>
-
     <footer>© 2026 Post Browser App</footer>
   `;
-
-    attachListeners();
 }
 
 /**
- * Event Listener Hub
+ * Improved Event Listener (Event Delegation)
  */
-function attachListeners() {
-    // Next Logic: Max boundary check
-    document.getElementById('next-btn')?.addEventListener('click', () => { 
-        if (currentId < MAX_POSTS) {
-            currentId++; 
-            showComments = false; 
-            fetchData(); 
-        }
-    });
+app.addEventListener('click', (e) => {
+    const target = e.target as HTMLElement;
+    const btn = target.closest('button');
+    if (!btn || btn.hasAttribute('disabled')) return;
 
-    // Previous Logic: Min boundary check (Prevents going to 0 or negative)
-    document.getElementById('prev-btn')?.addEventListener('click', () => { 
-        if (currentId > 1) {
-            currentId--; 
-            showComments = false; 
-            fetchData(); 
-        }
-    });
-
-    // Toggle Comments
-    document.getElementById('view-comments')?.addEventListener('click', () => { 
-        showComments = true; 
-        fetchData(); 
-    });
-
-    // Refresh: Clear current cache and trigger 1s load
-    document.getElementById('refresh-btn')?.addEventListener('click', () => {
+    if (btn.id === 'next-btn' && currentId < MAX_POSTS) {
+        currentId++;
+        showComments = false;
+        fetchData();
+    } else if (btn.id === 'prev-btn' && currentId > 1) {
+        currentId--;
+        showComments = false;
+        fetchData();
+    } else if (btn.id === 'view-comments') {
+        showComments = true;
+        fetchData();
+    } else if (btn.id === 'refresh-btn') {
         postCache.delete(`post-${currentId}`);
         commentCache.delete(`comments-${currentId}`);
-        fetchData(); 
-    });
-}
+        fetchData();
+    }
+});
 
 // Initial Boot
 fetchData();
