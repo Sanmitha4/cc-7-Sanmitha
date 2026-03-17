@@ -1,4 +1,5 @@
 import { CacheService } from './services/CacheService';
+import { delay } from '../../5.delay';
 import './style.css';
 
 // 1. Interfaces
@@ -19,49 +20,9 @@ const postCache = new CacheService<Post>();
 const commentCache = new CacheService<Comment[]>();
 
 let currentId = 1;
-let showComments = false;
 let isLoading = false;
 const MAX_POSTS = 10;
 const app = document.querySelector<HTMLDivElement>('#app')!;
-
-/**
- * Core Data Fetching Logic
- */
-async function fetchData() {
-    const postKey = `post-${currentId}`;
-    const commentKey = `comments-${currentId}`;
-
-    const isPostCached = postCache.has(postKey);
-    const isCommentsCached = commentCache.has(commentKey);
-
-    const needsToFetch = !isPostCached || (showComments && !isCommentsCached);
-
-    if (needsToFetch) {
-        isLoading = true;
-        render(); 
-
-        try {
-            const postPromise = getPost();
-            const commentsPromise = showComments ? getComments() : Promise.resolve([]);
-            const delayPromise = new Promise(resolve => setTimeout(resolve, 1000));
-
-            const [post, comments] = await Promise.all([postPromise, commentsPromise, delayPromise]);
-
-            isLoading = false;
-            render(post, comments);
-        } catch {
-            // REMOVED '(error)' to satisfy ESLint
-            isLoading = false;
-            app.innerHTML = `<div class="error">Failed to load data. Please try again.</div>`;
-        }
-    } else {
-        isLoading = false;
-        const post = postCache.get(postKey);
-        const comments = showComments ? commentCache.get(commentKey) : [];
-        render(post, comments || []);
-    }
-}
-
 
 /**
  * API Fetchers
@@ -93,9 +54,11 @@ async function getComments(): Promise<Comment[]> {
 }
 
 /**
- * Main UI Renderer
+ * Separate Renderers
+ * Addressing: "render posts and comments separately"
  */
-function render(post?: Post, comments: Comment[] = []) {
+
+function renderPost(post?: Post) {
     app.innerHTML = `
     <header>
       <h1>Post<span>Browser</span></h1>
@@ -122,22 +85,12 @@ function render(post?: Post, comments: Comment[] = []) {
                 <span style="font-size: 1.1rem">🔄</span> Refresh
             </button>
             
-            ${!showComments && !isLoading ? `
+            ${!isLoading ? `
               <button class="btn btn-primary" id="view-comments">View Comments</button>
             ` : ''}
           </div>
 
-          ${showComments && !isLoading ? `
-            <div class="comments-section">
-              <h3 style="margin-bottom: 1.2rem; font-family: 'Outfit', sans-serif;">Recent Comments</h3>
-              ${comments.slice(0, 5).map(c => `
-                <div class="comment">
-                  <div class="comment-author">${c.email}</div>
-                  <div class="comment-body">${c.body}</div>
-                </div>
-              `).join('')}
-            </div>
-          ` : ''}
+          <div id="comments-container"></div>
 
           <div class="nav-controls">
             <button class="btn btn-secondary" id="prev-btn" ${currentId <= 1 || isLoading ? 'disabled' : ''}>← Previous</button>
@@ -148,33 +101,96 @@ function render(post?: Post, comments: Comment[] = []) {
     </main>
     <footer>© 2026 Post Browser App</footer>
   `;
+
+    // Re-bind listeners after DOM update
+    bindEventListeners();
+}
+
+function renderComments(comments: Comment[]) {
+    const container = document.getElementById('comments-container');
+    if (!container) return;
+
+    container.innerHTML = `
+        <div class="comments-section">
+          <h3 style="margin-bottom: 1.2rem; font-family: 'Outfit', sans-serif;">Recent Comments</h3>
+          ${comments.slice(0, 5).map(c => `
+            <div class="comment">
+              <div class="comment-author">${c.email}</div>
+              <div class="comment-body">${c.body}</div>
+            </div>
+          `).join('')}
+        </div>
+    `;
+    
+    // Hide the view button once comments are rendered
+    document.getElementById('view-comments')?.style.setProperty('display', 'none');
 }
 
 /**
- * Improved Event Listener (Event Delegation)
+ * Individual Event Listeners
  */
-app.addEventListener('click', (e) => {
-    const target = e.target as HTMLElement;
-    const btn = target.closest('button');
-    if (!btn || btn.hasAttribute('disabled')) return;
+function bindEventListeners() {
+    document.getElementById('next-btn')?.addEventListener('click', () => {
+        if (currentId < MAX_POSTS) {
+            currentId++;
+            fetchData();
+        }
+    });
 
-    if (btn.id === 'next-btn' && currentId < MAX_POSTS) {
-        currentId++;
-        showComments = false;
-        fetchData();
-    } else if (btn.id === 'prev-btn' && currentId > 1) {
-        currentId--;
-        showComments = false;
-        fetchData();
-    } else if (btn.id === 'view-comments') {
-        showComments = true;
-        fetchData();
-    } else if (btn.id === 'refresh-btn') {
+    document.getElementById('prev-btn')?.addEventListener('click', () => {
+        if (currentId > 1) {
+            currentId--;
+            fetchData();
+        }
+    });
+
+    document.getElementById('refresh-btn')?.addEventListener('click', () => {
         postCache.delete(`post-${currentId}`);
         commentCache.delete(`comments-${currentId}`);
         fetchData();
+    });
+
+    // Addressing: "comments should be fetched only when needed"
+    document.getElementById('view-comments')?.addEventListener('click', async (e) => {
+        const btn = e.currentTarget as HTMLButtonElement;
+        btn.disabled = true;
+        btn.innerText = "Loading...";
+
+        try {
+            const comments = await getComments();
+            renderComments(comments);
+        } catch {
+            btn.innerText = "Error loading comments";
+            btn.disabled = false;
+        }
+    });
+}
+
+/**
+ * Core Data Fetching Logic (Initial Page Load)
+ */
+async function fetchData() {
+    const postKey = `post-${currentId}`;
+    const cachedPost = postCache.get(postKey);
+
+    if (!cachedPost) {
+        isLoading = true;
+        renderPost(); 
+
+        try {
+            //  " implemented delay method"
+            const [post] = await Promise.all([getPost(), delay(1000)]);
+            isLoading = false;
+            renderPost(post);
+        } catch {
+            isLoading = false;
+            app.innerHTML = `<div class="error">Failed to load data. Please try again.</div>`;
+        }
+    } else {
+        isLoading = false;
+        renderPost(cachedPost);
     }
-});
+}
 
 // Initial Boot
 fetchData();
