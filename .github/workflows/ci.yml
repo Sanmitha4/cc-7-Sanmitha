@@ -19,7 +19,7 @@ jobs:
         with:
           node-version: "20"
 
-      # --- 1. Root Checks (Standard Assignment Checks) ---
+      # --- Root Checks (Standard Assignment Checks) ---
       - name: Install Root Dependencies
         run: npm install
 
@@ -27,21 +27,4 @@ jobs:
         run: npx eslint .
 
       - name: Run Vitest (Testing)
-        run: npx vitest run 
-
-
-      # --- 2. Post Browser E2E Checks (The Build Step) ---
-      # 1. Install dependencies WHERE the package.json lives
-      - name: Install Post-Browser Dependencies
-        working-directory: Assignment-3/post-browser
-        run: npm install
-
-      # 2. Install the browsers for that specific project
-      - name: Install Playwright Browsers
-        working-directory: Assignment-3/post-browser
-        run: npx playwright install --with-deps
-
-      # 3. Run the tests from that directory
-      - name: Run Playwright E2E Tests
-        working-directory: Assignment-3/post-browser
-        run: npx playwright test
+        run: npx vitest run

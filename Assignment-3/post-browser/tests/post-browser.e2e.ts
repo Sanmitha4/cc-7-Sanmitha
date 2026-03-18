@@ -23,28 +23,45 @@ test.describe('Post Browser E2E Tests', () => {
   });
   // 3. Error Scenarios (Post & Comments)
   test('3a. Error scenario - post fetch failure', async ({ page }) => {
-    await page.route('**/posts/2', route => route.abort());
-    await page.click('#next-btn');
-    await expect(page.locator('.error')).toBeVisible();
+  // Use fulfill with 500 to simulate a server crash/error
+  await page.route('**/posts/2', async (route) => {
+    await route.fulfill({
+      status: 500,
+      contentType: "application/json",
+      body: JSON.stringify({ error: "Internal Server Error" })
+    });
   });
 
-  test('3b. Error scenario - comment fetch failure', async ({ page }) => {
-    // Mock comment failure
-    await page.route('**/comments', route => route.fulfill({ status: 500 }));
-    await page.click('#view-comments');
-    await expect(page.locator('#view-comments')).toHaveText('Error loading comments');
-  });
-
-  // 4. Refresh (Matching your requirement: Reset to Post 1)
-  test('4. Refresh - resets to 1st post and clears data', async ({ page }) => {
-    await page.click('#next-btn'); 
-    
-    // Trigger Refresh
-    await page.click('#refresh-btn');
-    
-    // If your app resets currentId to 1 on refresh:
-    await expect(page.locator('.post-id')).toContainText('Post #1');
-  });
+  await page.click('#next-btn');
+  await expect(page.locator('.error')).toBeVisible();
 });
 
+  test('3b. Error scenario - comment fetch failure', async ({ page }) => {
+  // Mock a structured server error
+  await page.route('**/comments', async (route) => {
+    await route.fulfill({
+      status: 500,
+      contentType: 'application/json',
+      body: JSON.stringify({ message: 'Internal Server Error' })
+    });
+  });
+
+  await page.click('#view-comments');
   
+  // Highlighting: Ensure your UI actually updates the button text to this exact string
+  await expect(page.locator('#view-comments')).toHaveText('Error loading comments');
+});
+test('4. Refresh - resets to 1st post and clears data', async ({ page }) => {
+  // 1. Move away from state #1
+  await page.click('#next-btn'); 
+  // Wait for the UI to definitely show Post #2
+  await expect(page.locator('.post-id')).toHaveText(/Post #2/); 
+
+  // 2. Click Refresh
+  await page.click('#refresh-btn');
+  
+  // 3. Instead of waiting for navigation, just expect the text to flip back.
+  // Playwright's 'toHaveText' has a built-in "wait and retry" logic.
+  await expect(page.locator('.post-id')).toHaveText(/Post #1/);
+});
+});
