@@ -1,0 +1,11 @@
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+# 1. Enter the folder
+cd post-browser-sel
+
+# 2. Run lint-staged (only checks files you changed)
+npx lint-staged
+
+# 3. Run the Selenium tests (optional but recommended to ensure nothing broke)
+npm run test:selenium

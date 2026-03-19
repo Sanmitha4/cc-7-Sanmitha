@@ -1,0 +1,15 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",              /* Modern JavaScript features */
+    "module": "NodeNext",            /* Essential for modern Node.js apps */
+    "moduleResolution": "NodeNext",
+    "outDir": "./dist",              /* Where compiled JS goes */
+    "rootDir": "./src",              /* Where your TS files live */
+    "strict": true,                  /* Type safety */
+    "esModuleInterop": true,         /* Allows importing CommonJS modules */
+    "skipLibCheck": true,            /* Faster builds */
+    "forceConsistentCasingInFileNames": true
+  },
+  "include": ["src/**/*"],           /* Tells TS to look in the src folder */
+  "exclude": ["node_modules"]
+}
