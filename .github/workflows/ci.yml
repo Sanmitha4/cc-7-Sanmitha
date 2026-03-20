@@ -2,11 +2,9 @@ name: Project Checkup
 
 on:
   push:
-    branches:
-      - "**"
+    branches: ["**"]
   pull_request:
-    branches:
-      - "**"
+    branches: ["**"]
 
 jobs:
   quality-control:
@@ -21,11 +19,11 @@ jobs:
         with:
           node-version: "20"
 
-      - name: Install Dependencies
+      # --- Root Checks (Standard Assignment Checks) ---
+      - name: Install Root Dependencies
         run: npm install
 
       - name: Run ESLint (Linting)
-        # Simplified: removed version lock and --ext flag
         run: npx eslint .
 
       - name: Run Vitest (Testing)

@@ -143,13 +143,12 @@ function bindEventListeners() {
             fetchData();
         }
     });
-
     document.getElementById('refresh-btn')?.addEventListener('click', () => {
-        postCache.delete(`post-${currentId}`);
-        commentCache.delete(`comments-${currentId}`);
+        postCache.clear();
+        commentCache.clear();
+        currentId = 1;
         fetchData();
     });
-
     // Addressing: "comments should be fetched only when needed"
     document.getElementById('view-comments')?.addEventListener('click', async (e) => {
         const btn = e.currentTarget as HTMLButtonElement;
