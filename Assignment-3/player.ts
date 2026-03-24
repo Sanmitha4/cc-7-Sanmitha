@@ -116,3 +116,41 @@ class Player {
     this.notify();
   }
 }
+
+export type Beat = { key: string; timestamp: number };
+
+/**
+ * Normalizes recordings by removing 'PAUSE' markers and 
+ * recalculating offsets based on silence duration.
+ * * Logic: CurrentTime - OriginTime - AccumulatedPauseDuration
+ */
+export function normalizeRecordings(beats: Beat[]): Beat[] {
+  if (beats.length === 0) return [];
+
+  const result: Beat[] = [];
+  let totalSilenceObserved = 0;
+  let currentPauseStartedAt: number | null = null;
+  const originTime = beats[0].timestamp;
+
+  for (const beat of beats) {
+    // 1. Mark the start of a pause and skip adding it to the result
+    if (beat.key === 'PAUSE') {
+      currentPauseStartedAt = beat.timestamp;
+      continue; 
+    }
+
+    // 2. If we just exited a pause, add that duration to our "dead air" accumulator
+    if (currentPauseStartedAt !== null) {
+      totalSilenceObserved += (beat.timestamp - currentPauseStartedAt);
+      currentPauseStartedAt = null; 
+    }
+
+    // 3. The Formula: CorrectedTime = Raw - StartOffset - AllPriorPauses
+    result.push({
+      ...beat,
+      timestamp: beat.timestamp - originTime - totalSilenceObserved,
+    });
+  }
+
+  return result;
+}
