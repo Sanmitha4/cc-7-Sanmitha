@@ -1,6 +1,3 @@
-/**
- * --- TYPES ---
- */
 
 export type Beat = {
   key: string;
@@ -12,19 +9,15 @@ export type Recording = {
   beats: Beat[];
 };
 
-export type Mode =
-  | "normal"
-  | "recording-progress"
-  | "recording-paused"
-  | "playback-progress"
-  | "playback-paused";
-
-export type State = {
-  mode: Mode;
-  recordings: Recording | null
-  currentRecording: Recording | null;
-  startTime: number;
-};
+/**
+ * Discriminated Union for State.This ensures that if the mode is 'recording-progress', the currentRecording MUST exist. We eliminate 'null' checks.
+ */
+export type State =
+  | { mode: "normal"; recording: Recording | null }
+  | { mode: "recording-progress"; currentRecording: Recording; startTime: number; recording: Recording | null }
+  | { mode: "recording-paused"; currentRecording: Recording; startTime: number; recording: Recording | null }
+  | { mode: "playback-progress"; recording: Recording }
+  | { mode: "playback-paused"; recording: Recording };
 
 export type Action =
   | { type: "START_RECORDING"; timestamp: number; name: string }
@@ -41,100 +34,74 @@ export type Action =
 /**
  * --- INITIAL STATE ---
  */
-
 export const initialState: State = {
   mode: "normal",
-  recording: null, // Set to null, not []
-  currentRecording: null,
-  startTime: 0,
+  recording: null,
 };
-
+const addBeatToRecording = (rec: Recording, beat: Beat): Recording => ({
+  ...rec,
+  beats: [...rec.beats, beat]
+});
 /**
  * --- REDUCER ---
  */
-
 export function reducer(state: State, action: Action): State {
-  // Destructure for cleaner "human" reading and less typing
-  const { mode, recordings, currentRecording } = state;
-
   switch (action.type) {
     case "START_RECORDING":
-      if (mode === "normal") {
-        return Object.assign({}, state, {
+      if (state.mode === "normal") {
+        return {
           mode: "recording-progress",
           startTime: action.timestamp,
           currentRecording: { name: action.name, beats: [] },
-        });
+          recording: state.recording, 
+        };
       }
       return state;
-
     case "BEAT":
-      // Only allow adding beats if actively recording
-      if (mode === "recording-progress" && currentRecording) {
-        const newBeats = currentRecording.beats.concat({
-          key: action.key,
-          timestamp: action.timestamp,
-        });
-        const updatedRec = Object.assign({}, currentRecording, { beats: newBeats });
-        return Object.assign({}, state, { currentRecording: updatedRec });
-      }
-      return state;
-
+      if (state.mode !== "recording-progress") return state;
+      return {
+        ...state,
+        currentRecording: addBeatToRecording(state.currentRecording, action)
+      };
     case "PAUSE_RECORDING":
-      if (mode === "recording-progress") {
-        return Object.assign({}, state, { mode: "recording-paused" });
+      if (state.mode === "recording-progress") {
+        return { ...state, mode: "recording-paused" };
       }
       return state;
 
     case "CONTINUE_RECORDING":
-      if (mode === "recording-paused") {
-        return Object.assign({}, state, {
-          mode: "recording-progress",
-          startTime: action.timestamp,
-        });
+      if (state.mode === "recording-paused") {
+        return { ...state, mode: "recording-progress", startTime: action.timestamp };
       }
       return state;
 
     case "STOP_RECORDING":
-      if (currentRecording && (mode === "recording-progress" || mode === "recording-paused")) {
-        return Object.assign({}, state, {
+      if (state.mode === "recording-progress" || state.mode === "recording-paused") {
+        return {
           mode: "normal",
-          recording: currentRecording, // Save directly (replaces the old one)
-          currentRecording: null,
-          startTime: 0,
-        });
+          recording: state.currentRecording,
+        };
       }
       return state;
 
     case "START_PLAYBACK":
-      if (mode === "normal" && state.recording) {
-        return Object.assign({}, state, { mode: "playback-progress" });
-      }
-      return state;
-
-    case "PAUSE_PLAYBACK":
-      if (mode === "playback-progress") {
-        return Object.assign({}, state, { mode: "playback-paused" });
-      }
-      return state;
-
-    case "CONTINUE_PLAYBACK":
-      if (mode === "playback-paused") {
-        return Object.assign({}, state, { mode: "playback-progress" });
+      if (state.mode === "normal" && state.recording) {
+        return { mode: "playback-progress", recording: state.recording };
       }
       return state;
 
     case "STOP_PLAYBACK":
-      if (mode === "playback-progress" || mode === "playback-paused") {
-        return Object.assign({}, state, { mode: "normal" });
+      if (state.mode === "playback-progress" || state.mode === "playback-paused") {
+        return { mode: "normal", recording: state.recording };
       }
       return state;
 
     case "CLEAR_ALL_RECORDINGS":
-      if (mode === "normal") {
-        return Object.assign({}, state, { recording: null });
+      if (state.mode === "normal") {
+        return { mode: "normal", recording: null };
       }
       return state;
+
     default:
       return state;
   }
