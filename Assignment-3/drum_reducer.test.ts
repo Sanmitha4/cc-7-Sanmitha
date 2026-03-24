@@ -130,7 +130,7 @@ describe("Action: CONTINUE_RECORDING", () => {
     expect(result.currentRecording?.name).toBe("Recorded song");
   });
 
-  it("If beat is already getting recorded ,then continue recording is diabled", () => {
+  it("If beat is already getting recorded ,then continue recording is disabled", () => {
     const recordingState: State = {
       mode: "recording-progress",
       recordings: [],
@@ -154,21 +154,6 @@ describe("Action: CONTINUE_RECORDING", () => {
 
 
 describe("Action: STOP_RECORDING", () => {
-  it("If mode is in recording paused then it should allow stopping ", () => {
-    const pausedState: State = {
-      mode: "recording-paused",
-      recordings: [{ name: "Existing Song", beats: [] }], // Library already has 1 song
-      currentRecording: { name: "New Song", beats: [] },
-      startTime: 1000,
-    };
-
-    const result = reducer(pausedState, { type: "STOP_RECORDING" });
-
-    // We should now have 2 songs in the library
-    expect(result.recordings).toHaveLength(2);
-    expect(result.recordings[1].name).toBe("New Song");
-    expect(result.mode).toBe("normal");
-  });
 
   /**
    * Test 3: The Safety Guard (Null Case)

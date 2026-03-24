@@ -44,7 +44,7 @@ export type Action =
 
 export const initialState: State = {
   mode: "normal",
-  recordings: [],
+  recording: null, // Set to null, not []
   currentRecording: null,
   startTime: 0,
 };
@@ -96,11 +96,10 @@ export function reducer(state: State, action: Action): State {
       return state;
 
     case "STOP_RECORDING":
-      // Validate that there is a recording to save and we are in a recording mode
       if (currentRecording && (mode === "recording-progress" || mode === "recording-paused")) {
         return Object.assign({}, state, {
           mode: "normal",
-          recordings: recordings.concat(currentRecording),
+          recording: currentRecording, // Save directly (replaces the old one)
           currentRecording: null,
           startTime: 0,
         });
@@ -108,7 +107,7 @@ export function reducer(state: State, action: Action): State {
       return state;
 
     case "START_PLAYBACK":
-      if (mode === "normal" && recordings.length > 0) {
+      if (mode === "normal" && state.recording) {
         return Object.assign({}, state, { mode: "playback-progress" });
       }
       return state;
@@ -133,10 +132,9 @@ export function reducer(state: State, action: Action): State {
 
     case "CLEAR_ALL_RECORDINGS":
       if (mode === "normal") {
-        return Object.assign({}, state, { recordings: [] });
+        return Object.assign({}, state, { recording: null });
       }
       return state;
-
     default:
       return state;
   }
