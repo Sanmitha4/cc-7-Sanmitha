@@ -1,4 +1,3 @@
-
 export type Beat = {
   key: string;
   timestamp: number;
@@ -9,9 +8,6 @@ export type Recording = {
   beats: Beat[];
 };
 
-/**
- * Discriminated Union for State.This ensures that if the mode is 'recording-progress', the currentRecording MUST exist. We eliminate 'null' checks.
- */
 export type State =
   | { mode: "normal"; recording: Recording | null }
   | { mode: "recording-progress"; currentRecording: Recording; startTime: number; recording: Recording | null }
@@ -31,20 +27,16 @@ export type Action =
   | { type: "STOP_PLAYBACK" }
   | { type: "CLEAR_ALL_RECORDINGS" };
 
-/**
- * --- INITIAL STATE ---
- */
 export const initialState: State = {
   mode: "normal",
   recording: null,
 };
+
 const addBeatToRecording = (rec: Recording, beat: Beat): Recording => ({
   ...rec,
   beats: [...rec.beats, beat]
 });
-/**
- * --- REDUCER ---
- */
+
 export function reducer(state: State, action: Action): State {
   switch (action.type) {
     case "START_RECORDING":
@@ -57,12 +49,14 @@ export function reducer(state: State, action: Action): State {
         };
       }
       return state;
+
     case "BEAT":
       if (state.mode !== "recording-progress") return state;
       return {
         ...state,
         currentRecording: addBeatToRecording(state.currentRecording, action)
       };
+
     case "PAUSE_RECORDING":
       if (state.mode === "recording-progress") {
         return { ...state, mode: "recording-paused" };
@@ -87,6 +81,18 @@ export function reducer(state: State, action: Action): State {
     case "START_PLAYBACK":
       if (state.mode === "normal" && state.recording) {
         return { mode: "playback-progress", recording: state.recording };
+      }
+      return state;
+
+    case "PAUSE_PLAYBACK":
+      if (state.mode === "playback-progress") {
+        return { ...state, mode: "playback-paused" };
+      }
+      return state;
+
+    case "CONTINUE_PLAYBACK":
+      if (state.mode === "playback-paused") {
+        return { ...state, mode: "playback-progress" };
       }
       return state;
 
