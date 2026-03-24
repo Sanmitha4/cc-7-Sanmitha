@@ -1,97 +1,141 @@
-// Types remain largely the same, but we can group them logically
-export type Beat = { key: string; timestamp: number };
-export type Recording = { name: string; beats: Beat[] };
+/**
+ * --- TYPES ---
+ */
 
-export type Mode = 
-  | "idle" // 'normal' is a bit vague, 'idle' or 'ready' is more descriptive
-  | "recording" 
-  | "recording-paused" 
-  | "playback" 
+export type Beat = {
+  key: string;
+  timestamp: number;
+};
+
+export type Recording = {
+  name: string;
+  beats: Beat[];
+};
+
+export type Mode =
+  | "normal"
+  | "recording-progress"
+  | "recording-paused"
+  | "playback-progress"
   | "playback-paused";
 
 export type State = {
   mode: Mode;
-  recordings: Recording[];
+  recordings: Recording | null
   currentRecording: Recording | null;
   startTime: number;
 };
 
-// Use a discriminated union for Actions - this is standard and clean
 export type Action =
-  | { type: "START_REC"; timestamp: number; name: string }
-  | { type: "PAUSE_REC" | "STOP_REC" | "START_PLAY" | "PAUSE_PLAY" | "STOP_PLAY" | "CLEAR_ALL" }
-  | { type: "RESUME_REC" | "RESUME_PLAY"; timestamp?: number }
-  | { type: "ADD_BEAT"; key: string; timestamp: number };
+  | { type: "START_RECORDING"; timestamp: number; name: string }
+  | { type: "PAUSE_RECORDING" }
+  | { type: "CONTINUE_RECORDING"; timestamp: number }
+  | { type: "STOP_RECORDING" }
+  | { type: "BEAT"; key: string; timestamp: number }
+  | { type: "START_PLAYBACK" }
+  | { type: "PAUSE_PLAYBACK" }
+  | { type: "CONTINUE_PLAYBACK" }
+  | { type: "STOP_PLAYBACK" }
+  | { type: "CLEAR_ALL_RECORDINGS" };
+
+/**
+ * --- INITIAL STATE ---
+ */
 
 export const initialState: State = {
-  mode: "idle",
+  mode: "normal",
   recordings: [],
   currentRecording: null,
   startTime: 0,
 };
 
+/**
+ * --- REDUCER ---
+ */
+
 export function reducer(state: State, action: Action): State {
-  const { mode, currentRecording, recordings } = state;
+  // Destructure for cleaner "human" reading and less typing
+  const { mode, recordings, currentRecording } = state;
 
   switch (action.type) {
-    case "START_REC":
-      if (mode !== "idle") return state;
-      return {
-        ...state,
-        mode: "recording",
-        startTime: action.timestamp,
-        currentRecording: { name: action.name, beats: [] },
-      };
+    case "START_RECORDING":
+      if (mode === "normal") {
+        return Object.assign({}, state, {
+          mode: "recording-progress",
+          startTime: action.timestamp,
+          currentRecording: { name: action.name, beats: [] },
+        });
+      }
+      return state;
 
-    case "PAUSE_REC":
-      return mode === "recording" ? { ...state, mode: "recording-paused" } : state;
+    case "BEAT":
+      // Only allow adding beats if actively recording
+      if (mode === "recording-progress" && currentRecording) {
+        const newBeats = currentRecording.beats.concat({
+          key: action.key,
+          timestamp: action.timestamp,
+        });
+        const updatedRec = Object.assign({}, currentRecording, { beats: newBeats });
+        return Object.assign({}, state, { currentRecording: updatedRec });
+      }
+      return state;
 
-    case "RESUME_REC":
-      return mode === "recording-paused" 
-        ? { ...state, mode: "recording", startTime: action.timestamp ?? state.startTime } 
-        : state;
+    case "PAUSE_RECORDING":
+      if (mode === "recording-progress") {
+        return Object.assign({}, state, { mode: "recording-paused" });
+      }
+      return state;
 
-    case "STOP_REC":
-      if (!currentRecording) return state;
-      return {
-        ...state,
-        mode: "idle",
-        recordings: [...recordings, currentRecording],
-        currentRecording: null,
-        startTime: 0,
-      };
+    case "CONTINUE_RECORDING":
+      if (mode === "recording-paused") {
+        return Object.assign({}, state, {
+          mode: "recording-progress",
+          startTime: action.timestamp,
+        });
+      }
+      return state;
 
-    case "ADD_BEAT": {
-  // 1. Guard clause: Get out early if we shouldn't be here
-  if (mode !== "recording" || !currentRecording) return state;
+    case "STOP_RECORDING":
+      // Validate that there is a recording to save and we are in a recording mode
+      if (currentRecording && (mode === "recording-progress" || mode === "recording-paused")) {
+        return Object.assign({}, state, {
+          mode: "normal",
+          recordings: recordings.concat(currentRecording),
+          currentRecording: null,
+          startTime: 0,
+        });
+      }
+      return state;
 
-  // 2. Local variable: Makes the 'return' block much less noisy
-  const newBeat = { key: action.key, timestamp: action.timestamp };
+    case "START_PLAYBACK":
+      if (mode === "normal" && recordings.length > 0) {
+        return Object.assign({}, state, { mode: "playback-progress" });
+      }
+      return state;
 
-  return {
-    ...state,
-    currentRecording: {
-      ...currentRecording,
-      beats: [...currentRecording.beats, newBeat],
-    },
-  };
-}
+    case "PAUSE_PLAYBACK":
+      if (mode === "playback-progress") {
+        return Object.assign({}, state, { mode: "playback-paused" });
+      }
+      return state;
 
-    // Playback transitions are mostly just mode swaps
-    case "START_PLAY":
-      return (mode === "idle" && recordings.length > 0) ? { ...state, mode: "playback" } : state;
+    case "CONTINUE_PLAYBACK":
+      if (mode === "playback-paused") {
+        return Object.assign({}, state, { mode: "playback-progress" });
+      }
+      return state;
 
-    case "PAUSE_PLAY":
-      return mode === "playback" ? { ...state, mode: "playback-paused" } : state;
+    case "STOP_PLAYBACK":
+      if (mode === "playback-progress" || mode === "playback-paused") {
+        return Object.assign({}, state, { mode: "normal" });
+      }
+      return state;
 
-    case "RESUME_PLAY":
-      return mode === "playback-paused" ? { ...state, mode: "playback" } : state;
-
-    case "STOP_PLAY":
-      return ["playback", "playback-paused"].includes(mode) ? { ...state, mode: "idle" } : state;
-
-    case "CLEAR_ALL":
-      return mode === "idle" ? { ...state, recordings: [] } : state;
+    case "CLEAR_ALL_RECORDINGS":
+      if (mode === "normal") {
+        return Object.assign({}, state, { recordings: [] });
+      }
+      return state;
 
     default:
       return state;
