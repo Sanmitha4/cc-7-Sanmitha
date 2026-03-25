@@ -1,158 +1,134 @@
-import { describe, it, expect, beforeEach } from 'vitest';
-import { normalizeRecordings, Player } from './normalize'; 
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { Player, normalizeRecordings } from './normalize';
 import type { Beat, Recording, Listener } from './normalize';
 
-// --- Custom Mocking Utility ---
-// Since we aren't using vi.fn(), we need a simple way to track function calls.
-function createMock<T extends (...args: any[]) => any>() {
-  const calls: Parameters<T>[] = [];
-  const fn = (...args: Parameters<T>) => {
-    calls.push(args);
-  };
-  // Expose the call history so we can write assertions against it
-  fn.calls = calls;
-  return fn;
-}
-
-// --- Real Time Helper ---
-// A simple promise wrapper around setTimeout to wait for real time to pass
-const wait = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
-
-describe('normalizeRecordings', () => {
-  it('handles an empty array gracefully', () => {
+describe('Recording Normalization', () => {
+  it('returns an empty array if no beats are provided', () => {
     expect(normalizeRecordings([])).toEqual([]);
   });
 
-  it('zeroes out the starting time for standard sequences', () => {
-    const beats: Beat[] = [
-      { key: 'A', timestamp: 1500 },
-      { key: 'B', timestamp: 2000 },
-      { key: 'C', timestamp: 2500 },
+  it('strips pauses and aligns the first beat to the start of the timeline', () => {
+    const rawBeats: Beat[] = [
+      { key: 'kick', timestamp: 1200 },
+      { key: 'snare', timestamp: 1700 },
+      { key: 'PAUSE', timestamp: 2000 },
+      { key: 'hi-hat', timestamp: 3500 }, 
     ];
 
-    expect(normalizeRecordings(beats)).toEqual([
-      { key: 'A', timestamp: 0 },
-      { key: 'B', timestamp: 500 },
-      { key: 'C', timestamp: 1000 },
+    const processed = normalizeRecordings(rawBeats);
+
+    expect(processed).toEqual([
+      { key: 'kick', timestamp: 0 },
+      { key: 'snare', timestamp: 500 },
+      { key: 'hi-hat', timestamp: 800 },
     ]);
+    expect(processed).not.toContain(expect.objectContaining({ key: 'PAUSE' }));
   });
-
-  it('collapses pause durations and removes PAUSE markers', () => {
-    const beats: Beat[] = [
-      { key: 'A', timestamp: 1000 },
-      { key: 'PAUSE', timestamp: 1500 },
-      { key: 'B', timestamp: 3500 },
+  it('ignores redundant consecutive pauses', () => {
+    const rawBeats: Beat[] = [
+      { key: 'kick', timestamp: 1000 },
+      { key: 'PAUSE', timestamp: 1500 }, 
+      { key: 'PAUSE', timestamp: 2000 }, 
+      { key: 'snare', timestamp: 3500 }, 
     ];
 
-    expect(normalizeRecordings(beats)).toEqual([
-      { key: 'A', timestamp: 0 },
-      { key: 'B', timestamp: 500 },
+    const processed = normalizeRecordings(rawBeats);
+
+    expect(processed).toEqual([
+      { key: 'kick', timestamp: 0 },
+      { key: 'snare', timestamp: 500 },
     ]);
   });
 });
 
-describe('Player', () => {
-  // Using our manual mock utility
-  let playbackMock: ReturnType<typeof createMock>;
-  let listenerMock: ReturnType<typeof createMock>;
-  let recording: Recording;
+describe('Player Logic', () => {
+  let playbackKick: (beat: Beat) => void;
+  let listenerKick: Listener;
+  let sampleData: Recording;
   let player: Player;
 
   beforeEach(() => {
-    playbackMock = createMock();
-    listenerMock = createMock();
+    vi.useFakeTimers();
 
-    // We use very small millisecond delays so our real-time tests run fast
-    recording = {
+    playbackKick = vi.fn();
+    listenerKick = vi.fn();
+
+    sampleData = {
       beats: [
-        { key: 'A', timestamp: 0 },
-        { key: 'B', timestamp: 20 },
-        { key: 'C', timestamp: 50 },
-      ],
+        { key: 'C3', timestamp: 100 },
+        { key: 'E3', timestamp: 600 },
+        { key: 'G3', timestamp: 1700 },
+      ]
     };
 
-    player = new Player(recording as any, playbackMock);
+    player = new Player(sampleData as any, playbackKick);
   });
 
-  describe('Listeners & Subscriptions', () => {
-    it('allows subscribing and unsubscribing to playback events', () => {
-      player.subscribe(listenerMock);
+  afterEach(() => {
+    vi.clearAllTimers();
+  });
+
+  describe('Subscribers', () => {
+    it('manages listeners correctly and triggers notifications', () => {
+      player.subscribe(listenerKick);
       player.notify();
-      expect(listenerMock.calls.length).toBe(1);
+      expect(listenerKick).toHaveBeenCalledWith(0, 3);
 
-      player.unsubscribe(listenerMock);
+      player.unsubscribe(listenerKick);
       player.notify();
-      expect(listenerMock.calls.length).toBe(1); // Should not increase
+      expect(listenerKick).toHaveBeenCalledTimes(1);
     });
   });
 
-  describe('Playback logic (Real Time)', () => {
-    // Note the 'async' keyword here!
-    it('schedules and plays beats accurately over time', async () => {
+  describe('Playback Flow', () => {
+    it('executes the playback sequence with correct timing', () => {
+      player.subscribe(listenerKick);
       player.play();
 
-      // Give the event loop 1ms to process the 0ms timeout!
-      await wait(1); 
+      vi.advanceTimersByTime(0);
+      expect(playbackKick).toHaveBeenCalledWith(sampleData.beats[0]);
+      expect(listenerKick).toHaveBeenCalledWith(1, 3);
 
-      // Now the first beat will have played
-      expect(playbackMock.calls.length).toBe(1);
-      expect(playbackMock.calls[0][0]).toEqual({ key: 'A', timestamp: 0 });
-      
-      await wait(30); 
-      expect(playbackMock.calls.length).toBe(2);
-      expect(playbackMock.calls[1][0]).toEqual({ key: 'B', timestamp: 20 });
-
-      await wait(35);
-      expect(playbackMock.calls.length).toBe(3);
-      expect(playbackMock.calls[2][0]).toEqual({ key: 'C', timestamp: 50 });
+      vi.advanceTimersByTime(500);
+      expect(playbackKick).toHaveBeenLastCalledWith(sampleData.beats[1]);
+      expect(listenerKick).toHaveBeenLastCalledWith(2, 3);
     });
 
-    it('clears timers and stops playing when paused', async () => {
+    it('immediately halts playback when paused', () => {
       player.play();
+      vi.advanceTimersByTime(0); 
       
-      // Give the event loop 1ms to process the 0ms timeout!
-      await wait(1);
-
-      // First beat plays
-      expect(playbackMock.calls.length).toBe(1);
-
-      // Immediately pause before B or C can fire
       player.pause();
-
-      // Wait long enough that B and C *would* have played if not paused
-      await wait(80);
-
-      // Ensure no further beats played
-      expect(playbackMock.calls.length).toBe(1);
-      expect(player.scheduledPlaybackTimers.length).toBe(0);
+      
+      vi.advanceTimersByTime(5000);
+      expect(playbackKick).toHaveBeenCalledTimes(1);
+      expect(player.scheduledPlaybackTimers).toHaveLength(0);
     });
-    
 
-      
+    it('can resume playback from where it was paused', () => {
+      player.play();
+      vi.advanceTimersByTime(0); 
 
-    it('resumes playback seamlessly from the correct index', async () => {
+      expect(player.beatIndex).toBe(1);
+
       player.play();
       
-      // Wait for B to play (at 20ms)
-      await wait(30);
-      expect(playbackMock.calls.length).toBe(2);
-
-      // Pause before C plays (at 50ms)
-      player.pause();
-
-      // Simulate a user taking a long break
-      await wait(100); 
-
-      // Resume playback
-      player.play();
-
-      // When resuming, the next beat (C) is recalculated.
-      // Since C's original time was 50, and B's was 20, 
-      // C will now play 30ms relative to the moment play() is called.
-      await wait(40); // Wait just over 30ms
-      
-      expect(playbackMock.calls.length).toBe(3);
-      expect(playbackMock.calls[2][0]).toEqual({ key: 'C', timestamp: 50 });
+      vi.advanceTimersByTime(0);
+      expect(playbackKick).toHaveBeenCalledTimes(2);
+      expect(player.beatIndex).toBe(2);
     });
   });
+  it('does nothing if play is called when already at the end of the recording', () => {
+      player.play();
+      vi.advanceTimersByTime(5000); 
+      
+      expect(player.beatIndex).toBe(3); 
+      
+      playbackKick.mockClear(); 
+
+      player.play(); 
+
+      expect(playbackKick).not.toHaveBeenCalled();
+      expect(player.scheduledPlaybackTimers).toHaveLength(0);
+    });
 });

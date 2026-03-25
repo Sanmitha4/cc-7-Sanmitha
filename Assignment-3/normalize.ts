@@ -19,19 +19,15 @@ export function normalizeRecordings(beats: Beat[]): Beat[] {
       }
       continue; 
     }
-
     if (pauseStart !== null) {
       accumulatedPause += (beat.timestamp - pauseStart);
       pauseStart = null;
     }
     beat.timestamp = beat.timestamp - firstBeatTime - accumulatedPause;
-    
     beats[writeIndex] = beat;
     writeIndex++;
   }
-
   beats.length = writeIndex;
-  
   return beats;
 }
 
@@ -45,6 +41,7 @@ export class Player{
     get totalBeats() {
     return this.recording.beats.length;
     }
+
     constructor(private recording:RecordingState,private  playback:(beat:Beat)=>void){}
     subscribe(listener:Listener){
         this.listeners.push(listener);
