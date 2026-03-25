@@ -2,6 +2,8 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { Player, normalizeRecordings } from './normalize';
 import type { Beat, Recording, Listener } from './normalize';
 
+type RecordingState = Recording;
+
 describe('Recording Normalization', () => {
   it('returns an empty array if no beats are provided', () => {
     expect(normalizeRecordings([])).toEqual([]);
@@ -44,7 +46,7 @@ describe('Recording Normalization', () => {
 describe('Player Logic', () => {
   let playbackKick: (beat: Beat) => void;
   let listenerKick: Listener;
-  let sampleData: Recording;
+  let sampleData: RecordingState;
   let player: Player;
 
   beforeEach(() => {
@@ -61,7 +63,7 @@ describe('Player Logic', () => {
       ]
     };
 
-    player = new Player(sampleData as any, playbackKick);
+    player = new Player(sampleData , playbackKick);
   });
 
   afterEach(() => {
