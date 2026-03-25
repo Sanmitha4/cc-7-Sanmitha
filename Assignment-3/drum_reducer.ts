@@ -17,10 +17,10 @@ export type State =
 
 export type Action =
   | { type: "START_RECORDING"; timestamp: number; name: string }
-  | { type: "PAUSE_RECORDING" }
+  | { type: "PAUSE_RECORDING";beat :Beat}
   | { type: "CONTINUE_RECORDING"; timestamp: number }
   | { type: "STOP_RECORDING" }
-  | { type: "BEAT"; key: string; timestamp: number }
+  | { type: "BEAT"; beat :Beat}
   | { type: "START_PLAYBACK" }
   | { type: "PAUSE_PLAYBACK" }
   | { type: "CONTINUE_PLAYBACK" }
@@ -49,19 +49,34 @@ export function reducer(state: State, action: Action): State {
         };
       }
       return state;
-
-    case "BEAT":
+    case "BEAT": {
       if (state.mode !== "recording-progress") return state;
+      
       return {
         ...state,
-        currentRecording: addBeatToRecording(state.currentRecording, action)
+        // Pass the nested beat object directly! Much cleaner.
+        currentRecording: addBeatToRecording(state.currentRecording, action.beat)
       };
+    }
 
-    case "PAUSE_RECORDING":
+    case "PAUSE_RECORDING": {
       if (state.mode === "recording-progress") {
-        return { ...state, mode: "recording-paused" };
+        const updatedRecording = addBeatToRecording(state.currentRecording, {
+          key: 'PAUSE',
+          // Extract the timestamp from the nested beat object
+          timestamp: action.beat.timestamp
+        });
+
+        return {
+          mode: "recording-paused",
+          currentRecording: updatedRecording,
+          startTime: state.startTime,
+          recording: state.recording
+        };
       }
       return state;
+    }
+  
 
     case "CONTINUE_RECORDING":
       if (state.mode === "recording-paused") {
