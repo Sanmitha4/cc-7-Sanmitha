@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { reducer, initialState, State, Recording } from './drum_reducer';
+import { reducer, initialState, State, Recording, Action } from './drum_reducer';
 
 // A realistic mock track to use across our test suite
 const sampleTrack: Recording = { 
@@ -13,8 +13,8 @@ const sampleTrack: Recording = {
 describe('Drum Machine Reducer', () => {
   
   it('safely ignores unknown actions without mutating the state', () => {
-    // Cast to 'any' here just to test runtime JavaScript safety
-    const result = reducer(initialState, { type: 'SOME_WEIRD_ACTION' } as any);
+    // Cast to 'unknown as Action' to bypass type checking safely
+    const result = reducer(initialState, { type: 'SOME_WEIRD_ACTION' } as unknown as Action);
     expect(result).toBe(initialState);
   });
 
@@ -38,7 +38,7 @@ describe('Drum Machine Reducer', () => {
       expect(activeRecordingState.currentRecording.beats).toHaveLength(1);
       expect(activeRecordingState.currentRecording.beats[0].key).toBe('C');
 
-      // 3. User needs a break and hits Pause (Using the nested beat object!)
+      // 3. User needs a break and hits Pause
       currentState = reducer(currentState, { 
         type: 'PAUSE_RECORDING',
         beat: { key: 'PAUSE', timestamp: 200 }
@@ -64,25 +64,6 @@ describe('Drum Machine Reducer', () => {
     });
 
     it('blocks recording-specific actions if the user is in the wrong mode', () => {
-      // Trying to pause when we haven't even started
-      const invalidPauseAction = { type: 'PAUSE_RECORDING', beat: { key: 'PAUSE', timestamp: 0 } } as const;
-      expect(reducer(initialState, invalidPauseAction)).toBe(initialState);
-      
-      const pausedState: State = { 
-        mode: 'recording-paused', 
-        currentRecording: sampleTrack, 
-        startTime: 0, 
-        recording: null 
-      };
-      
-      // Trying to hit a drum pad while paused shouldn't add to the track
-      const result = reducer(pausedState, { 
-        type: 'BEAT', 
-        beat: { key: 'Kick', timestamp: 100 } 
-      });
-      expect(result).toBe(pausedState);
-    });
-    it('blocks recording-specific actions if the user is in the wrong mode', () => {
       const pausedState: State = { 
         mode: 'recording-paused', 
         currentRecording: sampleTrack, 
@@ -101,16 +82,16 @@ describe('Drum Machine Reducer', () => {
       const invalidPauseAction = { type: 'PAUSE_RECORDING', beat: { key: 'PAUSE', timestamp: 0 } } as const;
       expect(reducer(initialState, invalidPauseAction)).toBe(initialState);
       
-      // 2. Trying to START when already recording (Hits line 51)
+      // 2. Trying to START when already recording 
       expect(reducer(activeState, { type: 'START_RECORDING', name: 'New', timestamp: 0 })).toBe(activeState);
 
       // 3. Trying to hit a BEAT while paused
       expect(reducer(pausedState, { type: 'BEAT', beat: { key: 'Kick', timestamp: 100 } })).toBe(pausedState);
 
-      // 4. Trying to CONTINUE when already recording (Hits line 85)
+      // 4. Trying to CONTINUE when already recording 
       expect(reducer(activeState, { type: 'CONTINUE_RECORDING', timestamp: 0 })).toBe(activeState);
 
-      // 5. Trying to STOP when not recording at all (Hits line 94)
+      // 5. Trying to STOP when not recording at all
       expect(reducer(initialState, { type: 'STOP_RECORDING' })).toBe(initialState);
     });
   });
@@ -132,23 +113,19 @@ describe('Drum Machine Reducer', () => {
       expect(currentState.mode).toBe('normal');
     });
 
-    it('prevents playback from starting if there is no track loaded', () => {
-      const result = reducer(initialState, { type: 'START_PLAYBACK' });
-      expect(result).toBe(initialState);
-    });
     it('ignores playback controls if in the wrong mode or missing a track', () => {
       // 1. START without a track loaded
       expect(reducer(initialState, { type: 'START_PLAYBACK' })).toBe(initialState);
 
-      // 2. PAUSE when not playing (Hits line 106)
+      // 2. PAUSE when not playing 
       expect(reducer(initialState, { type: 'PAUSE_PLAYBACK' })).toBe(initialState);
 
       const activePlaybackState: State = { mode: 'playback-progress', recording: sampleTrack };
 
-      // 3. CONTINUE when already playing (Hits line 112)
+      // 3. CONTINUE when already playing 
       expect(reducer(activePlaybackState, { type: 'CONTINUE_PLAYBACK' })).toBe(activePlaybackState);
 
-      // 4. STOP when not playing (Hits line 118)
+      // 4. STOP when not playing 
       expect(reducer(initialState, { type: 'STOP_PLAYBACK' })).toBe(initialState);
     });
   });
