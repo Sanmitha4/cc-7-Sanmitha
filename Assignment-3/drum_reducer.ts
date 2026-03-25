@@ -54,7 +54,6 @@ export function reducer(state: State, action: Action): State {
       
       return {
         ...state,
-        // Pass the nested beat object directly! Much cleaner.
         currentRecording: addBeatToRecording(state.currentRecording, action.beat)
       };
     }
@@ -63,7 +62,6 @@ export function reducer(state: State, action: Action): State {
       if (state.mode === "recording-progress") {
         const updatedRecording = addBeatToRecording(state.currentRecording, {
           key: 'PAUSE',
-          // Extract the timestamp from the nested beat object
           timestamp: action.beat.timestamp
         });
 
