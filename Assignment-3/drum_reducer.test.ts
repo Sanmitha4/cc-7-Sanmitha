@@ -4,8 +4,8 @@ import { reducer, initialState, State, Recording, Action } from './drum_reducer'
 const sampleTrack: Recording = { 
   name: 'My album', 
   beats: [
-    { key: 'Kick', timestamp: 100 },
-    { key: 'Snare', timestamp: 500 }
+    { key: 'A', timestamp: 100 },
+    { key: 'B', timestamp: 500 }
   ] 
 };
 
