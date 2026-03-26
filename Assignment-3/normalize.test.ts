@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { Player, normalizeRecordings } from './normalize';
-import type { Beat, Recording, Listener } from './normalize';
+import type { Beat, Recording } from './normalize';
 
 // type RecordingState = Recording;
 
