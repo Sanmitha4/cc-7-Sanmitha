@@ -4,14 +4,15 @@ export type Listener=(beatIndex:number,totalBeats:number)=>void;
 
 export type Timeout=ReturnType<typeof setTimeout>
 
-export function normalizeRecordings(beats: Beat[]): Beat[] {
-  if (beats.length === 0) return beats;
+export function normalizeRecordings(beats: Beat[],startIndex: number = 0): Beat[] {
+  if (beats.length === 0||startIndex >= beats.length || startIndex < 0) return beats;
   let accumulatedPause = 0;
   let pauseStart: number | null = null;
-  const firstBeatTime = beats[0].timestamp;
-  let writeIndex = 0;
+  let writeIndex = startIndex;
+  const firstBeatTime = beats[startIndex].timestamp;
+  
 
-  for (let i = 0; i < beats.length; i++) {
+  for (let i = startIndex; i < beats.length; i++) {
     const beat = beats[i];
     if (beat.key === 'PAUSE') {
       if (pauseStart === null) {

@@ -1,8 +1,8 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { Player, normalizeRecordings } from './normalize';
-import type { Beat, Recording, Listener } from './normalize';
+import type { Beat, Recording } from './normalize';
 
-type RecordingState = Recording;
+// type RecordingState = Recording;
 
 describe('Recording Normalization', () => {
   it('returns an empty array if no beats are provided', () => {
@@ -11,59 +11,78 @@ describe('Recording Normalization', () => {
 
   it('strips pauses and aligns the first beat to the start of the timeline', () => {
     const rawBeats: Beat[] = [
-      { key: 'kick', timestamp: 1200 },
-      { key: 'snare', timestamp: 1700 },
+      { key: 'A', timestamp: 1200 },
+      { key: 'B', timestamp: 1700 },
       { key: 'PAUSE', timestamp: 2000 },
-      { key: 'hi-hat', timestamp: 3500 }, 
+      { key: 'C', timestamp: 3500 }, 
     ];
 
     const processed = normalizeRecordings(rawBeats);
 
     expect(processed).toEqual([
-      { key: 'kick', timestamp: 0 },
-      { key: 'snare', timestamp: 500 },
-      { key: 'hi-hat', timestamp: 800 },
+      { key: 'A', timestamp: 0 },
+      { key: 'B', timestamp: 500 },
+      { key: 'C', timestamp: 800 },
     ]);
     expect(processed).not.toContain(expect.objectContaining({ key: 'PAUSE' }));
   });
+
   it('ignores redundant consecutive pauses', () => {
     const rawBeats: Beat[] = [
-      { key: 'kick', timestamp: 1000 },
+      { key: 'A', timestamp: 1000 },
       { key: 'PAUSE', timestamp: 1500 }, 
       { key: 'PAUSE', timestamp: 2000 }, 
-      { key: 'snare', timestamp: 3500 }, 
+      { key: 'C', timestamp: 3500 }, 
     ];
 
     const processed = normalizeRecordings(rawBeats);
 
     expect(processed).toEqual([
-      { key: 'kick', timestamp: 0 },
-      { key: 'snare', timestamp: 500 },
+      { key: 'A', timestamp: 0 },
+      { key: 'C', timestamp: 500 },
+    ]);
+  });
+  it('respects the startIndex and only normalizes from that point onward', () => {
+    const rawBeats: Beat[] = [
+      { key: 'A', timestamp: 0 },
+      { key: 'B', timestamp: 500 },
+      { key: 'C', timestamp: 1200 },
+      { key: 'PAUSE', timestamp: 1500 },
+      { key: 'D', timestamp: 2000 }
+    ];
+
+    const processed = normalizeRecordings(rawBeats, 2);
+
+    expect(processed).toEqual([
+      { key: 'A', timestamp: 0 },
+      { key: 'B', timestamp: 500 },
+      { key: 'C', timestamp: 0 },
+      { key: 'D', timestamp: 300 }
     ]);
   });
 });
 
 describe('Player Logic', () => {
-  let playbackKick: (beat: Beat) => void;
-  let listenerKick: Listener;
-  let sampleData: RecordingState;
+  let playCallback: (beat: Beat) => void;
+  
+  let aRecording: Recording;
   let player: Player;
 
   beforeEach(() => {
     vi.useFakeTimers();
 
-    playbackKick = vi.fn();
-    listenerKick = vi.fn();
+    playCallback = vi.fn();
+    
 
-    sampleData = {
+    aRecording = {
       beats: [
-        { key: 'C3', timestamp: 100 },
-        { key: 'E3', timestamp: 600 },
-        { key: 'G3', timestamp: 1700 },
+        { key: 'D', timestamp: 100 },
+        { key: 'E', timestamp: 600 },
+        { key: 'F', timestamp: 1700 },
       ]
     };
 
-    player = new Player(sampleData , playbackKick);
+    player = new Player(aRecording, playCallback);
   });
 
   afterEach(() => {
@@ -72,28 +91,30 @@ describe('Player Logic', () => {
 
   describe('Subscribers', () => {
     it('manages listeners correctly and triggers notifications', () => {
-      player.subscribe(listenerKick);
+      const listenerCallback = vi.fn();
+      player.subscribe(listenerCallback);
       player.notify();
-      expect(listenerKick).toHaveBeenCalledWith(0, 3);
+      expect(listenerCallback).toHaveBeenCalledWith(0, 3);
 
-      player.unsubscribe(listenerKick);
+      player.unsubscribe(listenerCallback);
       player.notify();
-      expect(listenerKick).toHaveBeenCalledTimes(1);
+      expect(listenerCallback).toHaveBeenCalledTimes(1);
     });
   });
 
   describe('Playback Flow', () => {
     it('executes the playback sequence with correct timing', () => {
-      player.subscribe(listenerKick);
+      const listenerCallback = vi.fn();
+      player.subscribe(listenerCallback);
       player.play();
 
       vi.advanceTimersByTime(0);
-      expect(playbackKick).toHaveBeenCalledWith(sampleData.beats[0]);
-      expect(listenerKick).toHaveBeenCalledWith(1, 3);
+      expect(playCallback).toHaveBeenCalledWith(aRecording.beats[0]);
+      expect(listenerCallback).toHaveBeenCalledWith(1, 3);
 
       vi.advanceTimersByTime(500);
-      expect(playbackKick).toHaveBeenLastCalledWith(sampleData.beats[1]);
-      expect(listenerKick).toHaveBeenLastCalledWith(2, 3);
+      expect(playCallback).toHaveBeenLastCalledWith(aRecording.beats[1]);
+      expect(listenerCallback).toHaveBeenLastCalledWith(2, 3);
     });
 
     it('immediately halts playback when paused', () => {
@@ -103,7 +124,7 @@ describe('Player Logic', () => {
       player.pause();
       
       vi.advanceTimersByTime(5000);
-      expect(playbackKick).toHaveBeenCalledTimes(1);
+      expect(playCallback).toHaveBeenCalledTimes(1);
       expect(player.scheduledPlaybackTimers).toHaveLength(0);
     });
 
@@ -116,21 +137,24 @@ describe('Player Logic', () => {
       player.play();
       
       vi.advanceTimersByTime(0);
-      expect(playbackKick).toHaveBeenCalledTimes(2);
+      expect(playCallback).toHaveBeenCalledTimes(2);
       expect(player.beatIndex).toBe(2);
     });
   });
+
   it('does nothing if play is called when already at the end of the recording', () => {
       player.play();
       vi.advanceTimersByTime(5000); 
       
       expect(player.beatIndex).toBe(3); 
       
-      playbackKick.mockClear(); 
+      playCallback.mockClear(); 
 
       player.play(); 
 
-      expect(playbackKick).not.toHaveBeenCalled();
+      expect(playCallback).not.toHaveBeenCalled();
       expect(player.scheduledPlaybackTimers).toHaveLength(0);
     });
 });
+
+
