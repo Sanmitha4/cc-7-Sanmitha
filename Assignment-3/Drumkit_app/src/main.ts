@@ -15,6 +15,10 @@ const recPause = document.getElementById('recPause') as HTMLButtonElement;
 const recStop = document.getElementById('recStop') as HTMLButtonElement;
 const recClear = document.getElementById('recClear') as HTMLButtonElement;
 
+const modal = document.getElementById('confirmModal') as HTMLDivElement;
+const modalConfirm = document.getElementById('modalConfirm') as HTMLButtonElement;
+const modalCancel = document.getElementById('modalCancel') as HTMLButtonElement;
+
 function dispatch(action: Action) {
   state = reducer(state, action);
   updateUI();
@@ -40,7 +44,31 @@ function startDrum(keyCode: string) {
     }, 100); 
   }
 }
-  
+
+function customConfirm(message: string): Promise<boolean> {
+  const modalMessage = document.getElementById('modalMessage')!;
+  modalMessage.textContent = message;
+  modal.style.display = 'flex';
+
+  return new Promise((resolve) => {
+    const onConfirm = () => {
+      cleanup();
+      resolve(true);
+    };
+    const onCancel = () => {
+      cleanup();
+      resolve(false);
+    };
+    const cleanup = () => {
+      modal.style.display = 'none';
+      modalConfirm.removeEventListener('click', onConfirm);
+      modalCancel.removeEventListener('click', onCancel);
+    };
+
+    modalConfirm.addEventListener('click', onConfirm);
+    modalCancel.addEventListener('click', onCancel);
+  });
+}
 window.addEventListener('keydown', function(e) {
   const keyCode = e.keyCode.toString();
   startDrum(keyCode);
@@ -92,10 +120,10 @@ recStop.addEventListener('click', () => {
   }
 });
 
-recClear.addEventListener('click', () => {
-  dispatch({ type: 'CLEAR_ALL_RECORDINGS' });
+recClear.addEventListener('click', async () => {
+  const ok = await customConfirm("This will delete your recording. Proceed?");
+  if (ok) dispatch({ type: 'CLEAR_ALL_RECORDINGS' });
 });
-
 playStart.addEventListener('click', () => {
   if (state.mode === 'normal' && state.recording !== null) {
     const beatsCopy = [...state.recording.beats];
