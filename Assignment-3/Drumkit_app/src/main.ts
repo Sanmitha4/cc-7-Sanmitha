@@ -6,6 +6,7 @@ let state: State = initialState;
 let playerInstance: Player | null = null;
 
 const playStart = document.getElementById('playStart') as HTMLButtonElement;
+const playPause = document.getElementById('playPause') as HTMLButtonElement;
 const playStop = document.getElementById('playStop') as HTMLButtonElement;
 const playbackBar = document.getElementById('playbackBar') as HTMLDivElement;
 
@@ -127,6 +128,15 @@ playStart.addEventListener('click', () => {
     dispatch({ type: 'CONTINUE_PLAYBACK' });
   }
 });
+playPause.addEventListener('click', () => {
+  if (state.mode === 'playback-progress') {
+    if (playerInstance) playerInstance.pause();
+    dispatch({ type: 'PAUSE_PLAYBACK' });
+  } else if (state.mode === 'playback-paused') {
+    if (playerInstance) playerInstance.play();
+    dispatch({ type: 'CONTINUE_PLAYBACK' });
+  }
+});
 
 playStop.addEventListener('click', () => {
   if (state.mode === 'playback-progress' || state.mode === 'playback-paused') {
@@ -177,18 +187,34 @@ function updateUI() {
   } else {
     playStart.disabled = false;
   }
-
-  if (state.mode === 'playback-progress' || state.mode === 'playback-paused') {
-    playStop.disabled = false;
-  } else {
-    playStop.disabled = true;
-  }
+  playStart.innerText = state.mode === 'playback-paused' ? 'resume' : 'start';
 
   if (state.mode === 'playback-paused') {
     playStart.innerText = 'resume';
   } else {
     playStart.innerText = 'start';
   }
+  
+  if (state.mode === 'playback-progress') {
+    playStart.disabled = true;
+    playPause.disabled = false;
+    playStop.disabled = false;
+    playStart.innerText = 'start'; 
+  } 
+  else if (state.mode === 'playback-paused') {
+    playStart.disabled = false; 
+    playPause.disabled = true; 
+    playStop.disabled = false;
+    playStart.innerText = 'resume'; 
+  } 
+  else {
+    playPause.disabled = true;
+    playStop.disabled = true;
+    playStart.innerText = 'start';
+    
+    playStart.disabled = (state.recording === null || state.mode === 'recording-progress');
+  }
 }
+
 
 updateUI();
