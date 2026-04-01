@@ -1,0 +1,106 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title> Drum Machine</title>
+  <link rel="stylesheet" href="/src/style.css" />
+</head>
+<body>
+  <h1 class="main-title">Drumkit Player</h1>
+  <div class="interface-container">
+    <div class="panel playback-panel">
+      <h3>Playback</h3>
+      <div class="button-row">
+        <button id="playStart" class="btn">start</button>
+        <button id="playPause" class="btn">pause</button>
+        <button id="playStop" class="btn">stop</button>
+      </div>
+      <div class="progress-container">
+        <div id="playbackBar" class="progress-bar"></div>
+      </div>
+    </div>
+
+    <div class="panel customize-panel">
+      <h3>
+        Customize
+        <label class="toggle-switch">
+          <input type="checkbox" id="customizeToggle">
+          <span class="slider"></span>
+        </label>
+      </h3>
+      <div class="button-row">
+        <button id="editKeysBtn" class="btn" disabled>Edit Keys</button>
+        <button id="deleteKeysBtn" class="btn" disabled>Delete Keys</button>
+      </div>
+      <div class="default-row">
+        <span class="default-label">Default</span>
+        <label class="toggle-switch">
+          <input type="checkbox" id="defaultToggle" checked>
+          <span class="slider"></span>
+        </label>
+      </div>
+    </div>
+
+    <div class="panel recording-panel">
+      <h3>Recording</h3>
+      <div class="button-row">
+        <button id="recStart" class="btn">start</button>
+        <button id="recPause" class="btn">pause</button>
+        <button id="recStop" class="btn">stop</button>
+        <button id="recClear" class="btn">clear</button>
+      </div>
+    </div>
+  </div> <div class="keys" id="drum-pad-container"></div>
+  <div id="audio-container"></div>
+
+  <div id="confirmModal" class="modal-overlay">
+    <div class="modal-content">
+      <h3 id="modalTitle" style="color: #ffc600; margin-top: 0;">Confirm Action</h3>
+      <p id="modalMessage">Are you sure you want to proceed?</p>
+      <div class="modal-buttons">
+        <button id="modalCancel" class="btn secondary">Cancel</button>
+        <button id="modalConfirm" class="btn destructive">Confirm</button>
+      </div>
+    </div>
+  </div>
+  <div id="editModal" class="modal-overlay">
+    <div class="modal-content">
+      <h3 style="color: #ffc600; margin-top: 0;">Edit Keys</h3>
+      <div id="editError" style="color: #ff4444; display: none; margin-bottom: 15px; font-weight: bold;">
+        Error: Keys cannot be empty or repeated!
+      </div>
+      <div id="editInputContainer" class="checkbox-list-container"></div>
+      <div class="modal-buttons">
+        <button id="cancelEditBtn" class="btn secondary">Cancel</button>
+        <button id="saveEditBtn" class="btn destructive">Confirm</button>
+      </div>
+    </div>
+  </div>
+  <div id="deleteModal" class="modal-overlay">
+    <div class="modal-content">
+      <h3 style="color: #ffc600; margin-top: 0;">Select Keys to Keep</h3>
+      <div id="deleteCheckboxContainer" class="checkbox-list-container"></div>
+      <div class="modal-buttons">
+        <button id="cancelDeleteBtn" class="btn secondary">Cancel</button>
+        <button id="saveDeleteBtn" class="btn destructive">Confirm Layout</button>
+      </div>
+    </div>
+  </div>
+  <template id="edit-row-template">
+    <div class="edit-row" style="display: flex; justify-content: center; align-items: center; gap: 15px; margin-bottom: 10px;">
+      <label class="edit-label" style="width: 30px; text-align: right; color: #ffc600; font-weight: bold;"></label>
+      <input type="text" maxlength="1" class="edit-key-input" style="width: 45px; text-align: center; font-size: 1.5rem; text-transform: uppercase; background: #333; color: white; border: 2px solid #555; padding: 5px; border-radius: 4px; font-family: monospace;">
+      <span class="edit-sound-hint" style="width: 80px; text-align: left; font-size: 0.9rem; color: #aaa;"></span>
+    </div>
+  </template>
+  <template id="delete-row-template">
+    <div class="checkbox-item">
+      <input type="checkbox" class="delete-checkbox">
+      <label></label>
+    </div>
+  </template>
+  <script type="module" src="/src/main.ts"></script>
+</body>
+</html>
