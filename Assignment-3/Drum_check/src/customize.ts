@@ -1,11 +1,11 @@
-import { getConfig, saveConfig, resetConfig, defaultConfig } from './drum_config';
+import { getDrumkitConfig, saveCustomDrumkitLayout, clearSavedDrumkitConfig, intialDrumConfig } from './drum_config';
 import type { DrumKeyConfig } from './drum_config';
 
 let rebuildAppUI: () => void;
 let reattachAppListeners: () => void;
 let isInitialized = false; 
 
-export function initCustomizeMode(rebuildUI: () => void, reattachListeners: () => void) {
+export function initializeCustomizationUI(rebuildUI: () => void, reattachListeners: () => void) {
   rebuildAppUI = rebuildUI;
   reattachAppListeners = reattachListeners;
   if (isInitialized === false) {
@@ -20,7 +20,7 @@ export function initCustomizeMode(rebuildUI: () => void, reattachListeners: () =
     }
     const saveEditBtn = document.getElementById('saveEditBtn');
     if (saveEditBtn !== null) {
-      saveEditBtn.addEventListener('click', saveEditedKey);
+      saveEditBtn.addEventListener('click', saveKeyMappingChanges);
     }
     const cancelDeleteBtn = document.getElementById('cancelDeleteBtn');
     if (cancelDeleteBtn !== null) {
@@ -33,18 +33,18 @@ export function initCustomizeMode(rebuildUI: () => void, reattachListeners: () =
     }
     const saveDeleteBtn = document.getElementById('saveDeleteBtn');
     if (saveDeleteBtn !== null) {
-      saveDeleteBtn.addEventListener('click', saveDeletedKeys);
+      saveDeleteBtn.addEventListener('click', saveVisibleKeySelection);
     }
     isInitialized = true;
   }
 }
-export function handleRestoreDefault(rebuildUI: () => void, reattachListeners: () => void) {
-  resetConfig();
+export function resetToDefaultLayout(rebuildUI: () => void, reattachListeners: () => void) {
+  clearSavedDrumkitConfig();
   rebuildUI();
   reattachListeners();
 }
 export function openEditModal() {
-  const currentConfig = getConfig();
+  const currentConfig = getDrumkitConfig();
   const container = document.getElementById('editInputContainer');
   const errorMsg = document.getElementById('editError');
   const template = document.getElementById('edit-row-template') as HTMLTemplateElement;
@@ -58,21 +58,21 @@ export function openEditModal() {
   }
   container.innerHTML = ''; 
   for (let i = 0; i < currentConfig.length; i++) {
-    const item = currentConfig[i];
+    const keyConfig = currentConfig[i];
     const clone = template.content.cloneNode(true) as DocumentFragment;
     const label = clone.querySelector('.edit-label') as HTMLLabelElement;
     const input = clone.querySelector('.edit-key-input') as HTMLInputElement;
     const hint = clone.querySelector('.edit-sound-hint') as HTMLSpanElement;
 
     if (label !== null) {
-      label.textContent = item.keyChar;
+      label.textContent = keyConfig.keyChar;
     }
     if (hint !== null) {
-      hint.textContent = "(" + item.soundName + ")"; 
+      hint.textContent = "(" + keyConfig.soundName + ")"; 
     }
     if (input !== null) {
-      input.dataset.originalId = item.keyCode;
-      input.value = item.keyChar;
+      input.dataset.originalId = keyConfig.keyCode;
+      input.value = keyConfig.keyChar;
     }
     container.appendChild(clone);
   }
@@ -82,11 +82,11 @@ export function openEditModal() {
   }
 }
 
-function saveEditedKey() {
-  const currentConfig = getConfig();
+function saveKeyMappingChanges() {
+  const currentConfig = getDrumkitConfig();
   const inputs = document.querySelectorAll('.edit-key-input') as NodeListOf<HTMLInputElement>;
   const errorMsg = document.getElementById('editError');
-  const typedValues: string[] = [];
+  const newKeyCharacters: string[] = [];
   let hasEmpty = false;
   let hasDuplicates = false;
 
@@ -95,11 +95,11 @@ function saveEditedKey() {
     if (val === "") {
       hasEmpty = true;
     }
-    typedValues.push(val);
+    newKeyCharacters.push(val);
   }
-  for (let i = 0; i < typedValues.length; i++) {
-    for (let j = i + 1; j < typedValues.length; j++) {
-      if (typedValues[i] === typedValues[j]) {
+  for (let i = 0; i < newKeyCharacters.length; i++) {
+    for (let j = i + 1; j < newKeyCharacters.length; j++) {
+      if (newKeyCharacters[i] === newKeyCharacters[j]) {
         hasDuplicates = true;
       }
     }
@@ -126,7 +126,7 @@ function saveEditedKey() {
       }
     }
   }
-  saveConfig(currentConfig);
+  saveCustomDrumkitLayout(currentConfig);
   const modal = document.getElementById('editModal');
   if (modal !== null) {
     modal.style.display = 'none';
@@ -136,15 +136,15 @@ function saveEditedKey() {
 }
 
 export function openDeleteModal() {
-  const currentConfig = getConfig();
+  const currentConfig = getDrumkitConfig();
   const container = document.getElementById('deleteCheckboxContainer');
   const template = document.getElementById('delete-row-template') as HTMLTemplateElement;
   if (container === null || template === null) {
     return;
   }
   container.innerHTML = ''; 
-  for (let i = 0; i < defaultConfig.length; i++) {
-    const originalKey = defaultConfig[i];
+  for (let i = 0; i < intialDrumConfig.length; i++) {
+    const originalKey = intialDrumConfig[i];
     let isChecked = false;
     
     for (let j = 0; j < currentConfig.length; j++) {
@@ -173,9 +173,9 @@ export function openDeleteModal() {
   }
 }
 
-function saveDeletedKeys() {
+function saveVisibleKeySelection() {
   const checkboxes = document.querySelectorAll('.delete-checkbox') as NodeListOf<HTMLInputElement>;
-  const currentConfig = getConfig();
+  const currentConfig = getDrumkitConfig();
   const keysToKeep: string[] = [];
   for (let i = 0; i < checkboxes.length; i++) {
     if (checkboxes[i].checked === true) {
@@ -183,8 +183,8 @@ function saveDeletedKeys() {
     }
   }
   const newConfig: DrumKeyConfig[] = [];
-  for (let i = 0; i < defaultConfig.length; i++) {
-    const original = defaultConfig[i];
+  for (let i = 0; i < intialDrumConfig.length; i++) {
+    const original = intialDrumConfig[i];
     if (keysToKeep.indexOf(original.keyCode) !== -1) {
       let foundMatch = false;
       for (let j = 0; j < currentConfig.length; j++) {
@@ -199,7 +199,7 @@ function saveDeletedKeys() {
       }
     }
   }
-  saveConfig(newConfig);
+  saveCustomDrumkitLayout(newConfig);
   const modal = document.getElementById('deleteModal');
   if (modal !== null) {
     modal.style.display = 'none';

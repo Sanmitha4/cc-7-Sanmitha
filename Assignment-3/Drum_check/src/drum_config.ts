@@ -6,7 +6,7 @@ export type DrumKeyConfig = {
 };
 
 // Keep the original as a default
-export const defaultConfig: DrumKeyConfig[] = [
+export const intialDrumConfig: DrumKeyConfig[] = [
   { keyCode: "65", keyChar: "A", soundName: "clap", src: "/sounds/clap.wav" },
   { keyCode: "83", keyChar: "S", soundName: "hihat", src: "/sounds/hihat.wav" },
   { keyCode: "68", keyChar: "D", soundName: "kick", src: "/sounds/kick.wav" },
@@ -19,18 +19,18 @@ export const defaultConfig: DrumKeyConfig[] = [
 ];
 
 // Helper to GET the current config
-export function getConfig(): DrumKeyConfig[] {
+export function getDrumkitConfig(): DrumKeyConfig[] {
   const saved = localStorage.getItem('drumConfig');
   if (saved) return JSON.parse(saved);
-    return JSON.parse(JSON.stringify(defaultConfig));
+    return JSON.parse(JSON.stringify(intialDrumConfig));
 }
 
 // Helper to SAVE a new config
-export function saveConfig(newConfig: DrumKeyConfig[]) {
+export function saveCustomDrumkitLayout(newConfig: DrumKeyConfig[]) {
   localStorage.setItem('drumConfig', JSON.stringify(newConfig));
 }
 
 // Helper to WIPE the config (for the Default toggle)
-export function resetConfig() {
+export function clearSavedDrumkitConfig() {
   localStorage.removeItem('drumConfig');
 }

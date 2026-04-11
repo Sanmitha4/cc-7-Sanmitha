@@ -1,7 +1,7 @@
 import { reducer, initialState } from './drum_reducer';
 import type { State, Action } from './drum_reducer';
 import { Player, normalizeRecordings } from './normalize';
-import { getConfig } from './drum_config'; // Fetch dynamic data!
+import { getDrumkitConfig } from './drum_config'; 
 
 let state: State = initialState;
 let playerInstance: Player | null = null;
@@ -33,7 +33,11 @@ function dispatch(action: Action) {
   updateUI();
 }
 
-function startDrum(keyCode: string) {
+/**
+ * Handles the logic for playing a drum sound and triggering the visual 
+ * 'playing' animation on the pad.
+ */
+function playDrumKey(keyCode: string) {
   const audio = document.querySelector(`audio[data-key="${keyCode}"]`) as HTMLAudioElement;
   const keyElement = document.querySelector(`.key[data-key="${keyCode}"]`) as HTMLDivElement;
 
@@ -53,9 +57,12 @@ function startDrum(keyCode: string) {
     }, 100); 
   }
 }
-
+/**
+ * Clears the screen and regenerates the drum pads and audio elements
+ * based on the current layout configuration.
+ */
 function buildDrumKit() {
-  const currentConfig = getConfig();
+  const currentConfig = getDrumkitConfig();
   
   if (padContainer !== null) {
     padContainer.innerHTML = '';
@@ -104,7 +111,7 @@ function attachKeyListeners() {
       const keyCode = key.getAttribute('data-key');
       
       if (keyCode !== null && keyCode !== undefined) {
-        startDrum(keyCode);
+        playDrumKey(keyCode);
         
         if (state.mode === 'recording-progress') {
           dispatch({ type: 'BEAT', beat: { key: keyCode, timestamp: Date.now() } });
@@ -113,7 +120,13 @@ function attachKeyListeners() {
     });
   }
 }
-
+/**
+ * Displays a custom confirmation modal with a message.
+ * Returns a Promise that resolves to 'true' if the user confirms, and 'false' if they cancel.
+ *
+ * * @param message - The text to display in the modal prompt.
+ * @returns Promise<boolean>
+ */
 function customConfirm(message: string): Promise<boolean> {
   const modalMessage = document.getElementById('modalMessage');
   if (modalMessage !== null) {
@@ -145,12 +158,12 @@ function customConfirm(message: string): Promise<boolean> {
 
 window.addEventListener('keydown', function(e) {
   const keyCode = e.keyCode.toString();
-  startDrum(keyCode);
+  playDrumKey(keyCode);
   if (state.mode === 'recording-progress') {
     dispatch({ type: 'BEAT', beat: { key: keyCode, timestamp: Date.now() } });
   }
 });
-
+// --- Button Events for Recording ---
 if (recStart !== null) {
   recStart.addEventListener('click', () => {
     if (state.mode === 'normal') {
@@ -183,14 +196,14 @@ if (recClear !== null) {
     if (ok) dispatch({ type: 'CLEAR_ALL_RECORDINGS' });
   });
 }
-
+// --- Button Events for Playback ---
 if (playStart !== null) {
   playStart.addEventListener('click', () => {
     if (state.mode === 'normal' && state.recording !== null) {
       const beatsCopy = [...state.recording.beats];
       const removedPauseBeats = normalizeRecordings(beatsCopy);
       
-      playerInstance = new Player({ beats: removedPauseBeats }, (beat) => startDrum(beat.key));
+      playerInstance = new Player({ beats: removedPauseBeats }, (beat) => playDrumKey(beat.key));
       playerInstance.play();
       dispatch({ type: 'START_PLAYBACK' });
 
@@ -301,6 +314,7 @@ function updateUI() {
   }
 }
 
+// --- Customization Logic ---
 if (customizeToggle !== null) {
   customizeToggle.addEventListener('change', async function() {
     if (customizeToggle.checked === true) {
@@ -309,7 +323,7 @@ if (customizeToggle !== null) {
       if (defaultToggle) defaultToggle.checked = false; 
       
       const customizeModule = await import('./customize');
-      customizeModule.initCustomizeMode(buildDrumKit, attachKeyListeners);
+      customizeModule.initializeCustomizationUI(buildDrumKit, attachKeyListeners);
     } else {
       if (editKeysBtn) editKeysBtn.disabled = true;
       if (deleteKeysBtn) deleteKeysBtn.disabled = true;
@@ -324,7 +338,7 @@ if (defaultToggle !== null) {
       const ok = await customConfirm("This will delete your custom keys and restore default. Proceed?");
       if (ok === true) {
         const customizeModule = await import('./customize');
-        customizeModule.handleRestoreDefault(buildDrumKit, attachKeyListeners);
+        customizeModule.resetToDefaultLayout(buildDrumKit, attachKeyListeners);
         
         if (customizeToggle) customizeToggle.checked = false;
         if (editKeysBtn) editKeysBtn.disabled = true;
@@ -354,7 +368,7 @@ if (deleteKeysBtn !== null) {
     customizeModule.openDeleteModal();
   });
 }
-
+// Initial App Setup
 buildDrumKit();       
 attachKeyListeners(); 
 updateUI();
