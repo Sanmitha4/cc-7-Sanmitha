@@ -28,3 +28,15 @@ jobs:
 
       - name: Run Vitest (Testing)
         run: npx vitest run
+
+      - name: Install Drumkit Dependencies
+        working-directory: Assignment-3/Drum_check
+        run: npm install
+
+      - name: Install Playwright Browsers
+        working-directory: Assignment-3/Drum_check
+        run: npx playwright install --with-deps
+
+      - name: Run Playwright Tests
+        working-directory: Assignment-3/Drum_check
+        run: npx playwright test
