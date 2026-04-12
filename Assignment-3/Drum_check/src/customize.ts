@@ -1,4 +1,4 @@
-import { getDrumkitConfig, saveCustomDrumkitLayout, clearSavedDrumkitConfig, intialDrumConfig } from './drum_config';
+import { getDrumkitConfig, saveCustomDrumkitLayout, clearSavedDrumkitConfig, initialDrumConfig } from './drum_config';
 import type { DrumKeyConfig } from './drum_config';
 
 let rebuildAppUI: () => void;
@@ -143,8 +143,8 @@ export function openDeleteModal() {
     return;
   }
   container.innerHTML = ''; 
-  for (let i = 0; i < intialDrumConfig.length; i++) {
-    const originalKey = intialDrumConfig[i];
+  for (let i = 0; i < initialDrumConfig.length; i++) {
+    const originalKey = initialDrumConfig[i];
     let isChecked = false;
     
     for (let j = 0; j < currentConfig.length; j++) {
@@ -183,8 +183,8 @@ function saveVisibleKeySelection() {
     }
   }
   const newConfig: DrumKeyConfig[] = [];
-  for (let i = 0; i < intialDrumConfig.length; i++) {
-    const original = intialDrumConfig[i];
+  for (let i = 0; i < initialDrumConfig.length; i++) {
+    const original = initialDrumConfig[i];
     if (keysToKeep.indexOf(original.keyCode) !== -1) {
       let foundMatch = false;
       for (let j = 0; j < currentConfig.length; j++) {

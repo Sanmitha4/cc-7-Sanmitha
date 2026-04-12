@@ -19,12 +19,28 @@ jobs:
         with:
           node-version: "20"
 
-      # --- Root Checks (Standard Assignment Checks) ---
       - name: Install Root Dependencies
         run: npm install
 
       - name: Run ESLint (Linting)
         run: npx eslint .
 
-      - name: Run Vitest (Testing)
-        run: npx vitest run
+      - name: Run Vitest (Logic Testing)
+        run: npx vitest run --exclude "**/Drum_check/**"
+
+      - name: Install Drumkit Dependencies
+        working-directory: Assignment-3/Drum_check
+        run: npm install
+
+      - name: Install Playwright Browsers
+        working-directory: Assignment-3/Drum_check
+        run: npx playwright install --with-deps
+
+      - name: Start Server and Run Tests
+        working-directory: Assignment-3/Drum_check
+        run: |
+          npm run dev & 
+          
+          npx wait-on http://localhost:5173 --timeout 60000
+          
+          npx playwright test
