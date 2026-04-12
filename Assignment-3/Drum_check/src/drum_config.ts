@@ -6,7 +6,7 @@ export type DrumKeyConfig = {
 };
 
 // Keep the original as a default
-export const intialDrumConfig: DrumKeyConfig[] = [
+export const initialDrumConfig: DrumKeyConfig[] = [
   { keyCode: "65", keyChar: "A", soundName: "clap", src: "/sounds/clap.wav" },
   { keyCode: "83", keyChar: "S", soundName: "hihat", src: "/sounds/hihat.wav" },
   { keyCode: "68", keyChar: "D", soundName: "kick", src: "/sounds/kick.wav" },
@@ -22,7 +22,7 @@ export const intialDrumConfig: DrumKeyConfig[] = [
 export function getDrumkitConfig(): DrumKeyConfig[] {
   const saved = localStorage.getItem('drumConfig');
   if (saved) return JSON.parse(saved);
-    return JSON.parse(JSON.stringify(intialDrumConfig));
+    return JSON.parse(JSON.stringify(initialDrumConfig));
 }
 
 // Helper to SAVE a new config
